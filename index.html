@@ -812,12 +812,17 @@
             let foundData = false;
 
             for (let row of jsonData) {
-                if (row.length >= 4 && typeof row[2] === 'number') {
+                // Try to find numeric values in the row
+                const qty = parseFloat(row[2]) || parseFloat(row[1]) || 1;
+                const unitPrice = parseFloat(row[3]) || parseFloat(row[2]) || 0;
+                const total = parseFloat(row[4]) || (qty * unitPrice);
+                
+                if (total > 0 || unitPrice > 0) {
                     invoiceData.push({
-                        name: row[1] || row[0] || 'Item',
-                        qty: row[2] || 1,
-                        unitPrice: row[3] || 0,
-                        total: row[4] || (row[2] * row[3])
+                        name: String(row[1] || row[0] || 'Item'),
+                        qty: qty,
+                        unitPrice: unitPrice,
+                        total: total
                     });
                     foundData = true;
                 }
@@ -836,13 +841,19 @@
 
             invoiceData = [];
             for (let row of rows.slice(1)) { // Skip header
-                if (row.length >= 4) {
-                    invoiceData.push({
-                        name: row[1] || row[0] || 'Item',
-                        qty: parseFloat(row[2]) || 1,
-                        unitPrice: parseFloat(row[3]) || 0,
-                        total: parseFloat(row[4]) || 0
-                    });
+                if (row.length >= 3) {
+                    const qty = parseFloat(row[2]) || 1;
+                    const unitPrice = parseFloat(row[3]) || 0;
+                    const total = parseFloat(row[4]) || (qty * unitPrice);
+                    
+                    if (total > 0 || unitPrice > 0) {
+                        invoiceData.push({
+                            name: row[1] || row[0] || 'Item',
+                            qty: qty,
+                            unitPrice: unitPrice,
+                            total: total
+                        });
+                    }
                 }
             }
 
@@ -979,6 +990,10 @@
             tbody.innerHTML = '';
 
             invoiceData.forEach(item => {
+                // Ensure total is calculated correctly
+                if (!item.total || item.total === 0) {
+                    item.total = item.qty * item.unitPrice;
+                }
                 const finalUnitPrice = item.unitPrice * multiplier;
                 const finalTotalPrice = item.total * multiplier;
                 const costInTargetCurrency = finalUnitPrice * exchangeRate;
