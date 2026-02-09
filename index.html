@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Calculator Pro - Smart Business Pricing Tool</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Invoice Cost Calculator - Smart Pricing Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,28 +13,41 @@
         }
 
         :root {
-            --primary: #6366F1;
-            --primary-dark: #4F46E5;
-            --secondary: #8B5CF6;
+            --primary: #0F172A;
+            --secondary: #1E293B;
+            --accent: #06B6D4;
+            --accent-hover: #0891B2;
             --success: #10B981;
             --warning: #F59E0B;
             --danger: #EF4444;
-            --dark: #1F2937;
-            --darker: #111827;
-            --light: #F9FAFB;
-            --text: #1F2937;
-            --text-light: #6B7280;
-            --border: #E5E7EB;
-            --shadow: rgba(0, 0, 0, 0.1);
+            --text: #F1F5F9;
+            --text-muted: #94A3B8;
+            --border: #334155;
+            --card-bg: #1E293B;
+            --input-bg: #0F172A;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Syne', sans-serif;
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+            background-attachment: fixed;
+            color: var(--text);
             min-height: 100vh;
             padding: 20px;
             position: relative;
             overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+            pointer-events: none;
         }
 
         @keyframes rotate {
@@ -646,60 +659,6 @@
         // Set up PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Helper function to parse numbers in different formats
-        function parseNumber(str) {
-            if (typeof str === 'number') return str;
-            if (!str) return 0;
-            
-            // Convert to string and trim
-            str = String(str).trim();
-            
-            // Remove currency symbols and extra spaces
-            str = str.replace(/[€$£¥₺]/g, '').trim();
-            
-            // Detect format:
-            // European: 1 234,56 or 1.234,56 or 1234,56
-            // US: 1,234.56 or 1234.56
-            
-            // Count commas and periods
-            const commaCount = (str.match(/,/g) || []).length;
-            const periodCount = (str.match(/\./g) || []).length;
-            const spaceCount = (str.match(/\s/g) || []).length;
-            
-            // Remove all spaces first
-            str = str.replace(/\s/g, '');
-            
-            if (commaCount > 0 && periodCount > 0) {
-                // Both comma and period present
-                const lastComma = str.lastIndexOf(',');
-                const lastPeriod = str.lastIndexOf('.');
-                
-                if (lastComma > lastPeriod) {
-                    // European: 1.234,56 -> comma is decimal
-                    str = str.replace(/\./g, '').replace(',', '.');
-                } else {
-                    // US: 1,234.56 -> period is decimal
-                    str = str.replace(/,/g, '');
-                }
-            } else if (commaCount > 0) {
-                // Only comma present
-                if (commaCount === 1 && str.indexOf(',') > str.length - 4) {
-                    // Likely European decimal: 1234,56
-                    str = str.replace(',', '.');
-                } else {
-                    // US thousands separator: 1,234
-                    str = str.replace(/,/g, '');
-                }
-            } else if (periodCount > 1) {
-                // Multiple periods - European thousands: 1.234.567
-                str = str.replace(/\./g, '');
-            }
-            // else: single period or no separators - already correct format
-            
-            const result = parseFloat(str);
-            return isNaN(result) ? 0 : result;
-        }
-
         // Update currency display when currencies change
         function updateCurrencyDisplay() {
             const baseCurrency = document.getElementById('baseCurrency').value;
@@ -823,142 +782,22 @@
         async function parsePDF(file) {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            
-            // Extract all text items with positions
-            let allItems = [];
+            let text = '';
+
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const content = await page.getTextContent();
-                content.items.forEach(item => {
-                    allItems.push({
-                        text: item.str,
-                        x: item.transform[4],
-                        y: item.transform[5]
-                    });
-                });
+                text += content.items.map(item => item.str).join(' ') + '\n';
             }
-            
-            // Group by Y coordinate
-            const lines = {};
-            allItems.forEach(item => {
-                const yKey = Math.round(item.y / 3);
-                if (!lines[yKey]) lines[yKey] = [];
-                lines[yKey].push(item);
-            });
-            
-            // Sort and build lines
-            const sortedLines = Object.keys(lines)
-                .map(y => lines[y].sort((a, b) => a.x - b.x))
-                .sort((a, b) => b[0].y - a[0].y);
-            
-            let textLines = [];
-            sortedLines.forEach(lineItems => {
-                const lineText = lineItems.map(item => item.text).join(' ').trim();
-                if (lineText) textLines.push(lineText);
-            });
-            
-            const allText = textLines.join('\n');
-            console.log('=== PDF TEXT ===');
-            console.log(allText);
-            console.log('================');
-            
-            // Convert PDF to CSV format
-            let csvLines = ['Product,Quantity,Unit Price,Total'];
-            
-            for (let line of textLines) {
-                if (line.length < 5) continue;
-                
-                const lowerLine = line.toLowerCase();
-                
-                // Skip headers/footers
-                if (lowerLine.match(/^(invoice|date:|customer|address|phone|email|page\s+\d)/)) continue;
-                if (lowerLine.match(/^(qty|quantity|description|unit price|total|amount|product)$/)) continue;
-                if (lowerLine.includes('subtotal') || lowerLine.includes('thank you')) continue;
-                
-                // Extract numbers
-                const allWords = line.split(/\s+/);
-                const numbers = [];
-                let nameWords = [];
-                let hitFirstNumber = false;
-                
-                for (let i = 0; i < allWords.length; i++) {
-                    const word = allWords[i];
-                    
-                    if (/\d/.test(word)) {
-                        hitFirstNumber = true;
-                        let numStr = word;
-                        let j = i + 1;
-                        while (j < allWords.length && j <= i + 2 && /^[\d,.]/.test(allWords[j])) {
-                            numStr += ' ' + allWords[j];
-                            j++;
-                        }
-                        
-                        const num = parseNumber(numStr);
-                        if (num > 0) {
-                            numbers.push(num);
-                        }
-                        i = j - 1;
-                    } else if (!hitFirstNumber) {
-                        nameWords.push(word);
-                    }
-                }
-                
-                // Convert to CSV if we have product data
-                if (numbers.length >= 3 && nameWords.length > 0) {
-                    const name = nameWords.join(' ').trim();
-                    
-                    if (name.length >= 2 && numbers[0] > 0 && numbers[0] < 10000) {
-                        const qty = numbers[0];
-                        const unitPrice = numbers[1];
-                        const total = numbers[numbers.length - 1];
-                        
-                        // Add to CSV
-                        csvLines.push(`"${name}",${qty},${unitPrice},${total}`);
-                        console.log(`CSV row: ${name},${qty},${unitPrice},${total}`);
-                    }
-                }
-            }
-            
-            console.log('=== GENERATED CSV ===');
-            console.log(csvLines.join('\n'));
-            console.log('====================');
-            
-            // Now parse the CSV we created
-            if (csvLines.length > 1) {
-                const csvText = csvLines.join('\n');
-                await parseCSVText(csvText);
-            } else {
-                showAlert('Could not extract data from PDF. Please upload as CSV or Excel format.', 'info');
-            }
-        }
-        
-        // Helper to parse CSV text directly
-        async function parseCSVText(csvText) {
-            const rows = csvText.split('\n').map(row => {
-                const separator = row.includes(';') ? ';' : ',';
-                return row.split(separator).map(cell => cell.trim().replace(/^"|"$/g, ''));
-            });
 
-            invoiceData = [];
-            
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (row.length >= 4) {
-                    const name = row[0];
-                    const qty = parseNumber(row[1]);
-                    const unitPrice = parseNumber(row[2]);
-                    const total = parseNumber(row[3]);
-                    
-                    if (name && qty > 0 && unitPrice > 0 && total > 0) {
-                        invoiceData.push({ name, qty, unitPrice, total });
-                    }
-                }
-            }
-            
-            if (invoiceData.length > 0) {
-                const totalAmount = invoiceData.reduce((sum, item) => sum + item.total, 0);
-                console.log(`Found ${invoiceData.length} items, Total: ${totalAmount.toFixed(2)}`);
-                showAlert(`PDF parsed! Found ${invoiceData.length} items totaling ${totalAmount.toFixed(2)}.`, 'success');
+            // Try to extract invoice total
+            const totalMatch = text.match(/total.*?(\d+[.,]\d+)/i);
+            if (totalMatch) {
+                const total = parseFloat(totalMatch[1].replace(',', '.'));
+                invoiceData = [{ name: 'Invoice Total', qty: 1, unitPrice: total, total: total }];
+                showAlert('PDF parsed! Found invoice total. You can add line items manually if needed.', 'success');
+            } else {
+                showAlert('PDF uploaded but could not extract data. Please enter invoice details manually.', 'info');
             }
         }
 
@@ -974,9 +813,9 @@
 
             for (let row of jsonData) {
                 // Try to find numeric values in the row
-                const qty = parseNumber(row[2]) || parseNumber(row[1]) || 1;
-                const unitPrice = parseNumber(row[3]) || parseNumber(row[2]) || 0;
-                const total = parseNumber(row[4]) || (qty * unitPrice);
+                const qty = parseFloat(row[2]) || parseFloat(row[1]) || 1;
+                const unitPrice = parseFloat(row[3]) || parseFloat(row[2]) || 0;
+                const total = parseFloat(row[4]) || (qty * unitPrice);
                 
                 if (total > 0 || unitPrice > 0) {
                     invoiceData.push({
@@ -990,10 +829,7 @@
             }
 
             if (foundData) {
-                const totalAmount = invoiceData.reduce((sum, item) => sum + item.total, 0);
-                console.log('Excel Parsed Data:', invoiceData);
-                console.log('Total Amount:', totalAmount);
-                showAlert(`Excel parsed! Found ${invoiceData.length} items totaling ${totalAmount.toFixed(2)}.`, 'success');
+                showAlert(`Excel parsed! Found ${invoiceData.length} items.`, 'success');
             } else {
                 showAlert('Excel uploaded but could not extract structured data. Please verify the format.', 'info');
             }
@@ -1001,56 +837,18 @@
 
         async function parseCSV(file) {
             const text = await file.text();
-            const rows = text.split('\n').map(row => {
-                // Handle both comma and semicolon separators
-                const separator = row.includes(';') ? ';' : ',';
-                return row.split(separator).map(cell => cell.trim().replace(/^"|"$/g, ''));
-            });
+            const rows = text.split('\n').map(row => row.split(','));
 
             invoiceData = [];
-            let headerFound = false;
-            let qtyIndex = -1, priceIndex = -1, totalIndex = -1, nameIndex = -1;
-            
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                
-                // Find header row
-                if (!headerFound) {
-                    const headerText = row.join(' ').toLowerCase();
-                    if (headerText.includes('product') || headerText.includes('description') || 
-                        headerText.includes('quantity') || headerText.includes('price')) {
-                        headerFound = true;
-                        
-                        // Detect column positions
-                        row.forEach((cell, idx) => {
-                            const cellLower = cell.toLowerCase();
-                            if (cellLower.includes('product') || cellLower.includes('description') || 
-                                cellLower.includes('item') || cellLower.includes('name')) nameIndex = idx;
-                            if (cellLower.includes('quantity') || cellLower.includes('qty') || cellLower.includes('amount')) qtyIndex = idx;
-                            if (cellLower.includes('unit') && cellLower.includes('price')) priceIndex = idx;
-                            if (cellLower.includes('total') || cellLower.includes('amount')) totalIndex = idx;
-                        });
-                        
-                        // Default indices if not found
-                        if (nameIndex === -1) nameIndex = 0;
-                        if (qtyIndex === -1) qtyIndex = 1;
-                        if (priceIndex === -1) priceIndex = 2;
-                        if (totalIndex === -1) totalIndex = 3;
-                        
-                        continue;
-                    }
-                }
-                
-                // Parse data rows
+            for (let row of rows.slice(1)) { // Skip header
                 if (row.length >= 3) {
-                    const name = row[nameIndex] || row[0] || 'Item';
-                    const qty = parseNumber(row[qtyIndex] || row[1]) || 1;
-                    const unitPrice = parseNumber(row[priceIndex] || row[2]) || 0;
-                    const total = parseNumber(row[totalIndex] || row[3]) || (qty * unitPrice);
+                    const qty = parseFloat(row[2]) || 1;
+                    const unitPrice = parseFloat(row[3]) || 0;
+                    const total = parseFloat(row[4]) || (qty * unitPrice);
                     
-                    if (total > 0 && unitPrice > 0 && name.length > 0) {
+                    if (total > 0 || unitPrice > 0) {
                         invoiceData.push({
-                            name: name,
+                            name: row[1] || row[0] || 'Item',
                             qty: qty,
                             unitPrice: unitPrice,
                             total: total
@@ -1059,14 +857,7 @@
                 }
             }
 
-            if (invoiceData.length > 0) {
-                const totalAmount = invoiceData.reduce((sum, item) => sum + item.total, 0);
-                console.log('CSV Parsed Data:', invoiceData);
-                console.log('Total Amount:', totalAmount);
-                showAlert(`CSV parsed! Found ${invoiceData.length} items totaling ${totalAmount.toFixed(2)}.`, 'success');
-            } else {
-                showAlert('CSV uploaded but could not extract data. Please check the format.', 'info');
-            }
+            showAlert(`CSV parsed! Found ${invoiceData.length} items.`, 'success');
         }
 
         function removeFile() {
@@ -1167,19 +958,9 @@
             }
 
             // Calculate totals
-            console.log('Invoice Data at Calculate:', invoiceData);
-            
-            // Ensure all items have valid totals
-            invoiceData.forEach(item => {
-                if (!item.total || item.total === 0 || isNaN(item.total)) {
-                    item.total = item.qty * item.unitPrice;
-                }
-            });
-            
-            const invoiceTotal = invoiceData.reduce((sum, item) => sum + (item.total || 0), 0);
-            console.log('Invoice Total:', invoiceTotal);
+            const invoiceTotal = invoiceData.reduce((sum, item) => sum + item.total, 0);
             const grandTotal = invoiceTotal + additionalCosts;
-            const multiplier = invoiceTotal > 0 ? grandTotal / invoiceTotal : 1;
+            const multiplier = grandTotal / invoiceTotal;
 
             // Get profit margins
             const profitMargins = Array.from(document.querySelectorAll('.profit-margin'))
