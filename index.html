@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Cost Calculator - Smart Pricing Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0F172A;
+            --secondary: #1E293B;
+            --accent: #06B6D4;
+            --accent-hover: #0891B2;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --text: #F1F5F9;
+            --text-muted: #94A3B8;
+            --border: #334155;
+            --card-bg: #1E293B;
+            --input-bg: #0F172A;
+        }
+
+        body {
+            font-family: 'Syne', sans-serif;
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, #10B981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -2px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .app-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            color: var(--primary);
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--input-bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Syne', sans-serif;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: #DC2626;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2306B6D4' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+
+        .cost-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: flex-end;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .cost-item input {
+            flex: 1;
+        }
+
+        .cost-item .btn {
+            padding: 14px 20px;
+        }
+
+        .profit-margin-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            overflow: hidden;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .results-table th {
+            background: var(--input-bg);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+        }
+
+        .results-table tr:hover {
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        .results-table td {
+            font-size: 0.9rem;
+        }
+
+        .currency {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .summary-card {
+            background: var(--input-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .file-info {
+            background: var(--input-bg);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .file-size {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-info {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: var(--accent);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .app-grid {
+                gap: 20px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .profit-margin-inputs {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Invoice Calculator</h1>
+            <p class="subtitle">Upload, Calculate, Export - Smart pricing made simple</p>
+        </header>
+
+        <div class="app-grid">
+            <!-- Step 1: Upload Invoice -->
+            <div class="card">
+                <h2><span class="step-number">1</span> Upload Invoice</h2>
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📄</div>
+                    <p style="font-weight: 600; margin-bottom: 5px;">Drop your invoice here</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">or click to browse</p>
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 10px;">Supports PDF, Excel, CSV, Images</p>
+                    <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg">
+                </div>
+                <div id="fileInfo" class="hidden"></div>
+            </div>
+
+            <!-- Step 2: Additional Costs -->
+            <div class="card">
+                <h2><span class="step-number">2</span> Additional Costs</h2>
+                <div id="costsContainer">
+                    <div class="cost-item">
+                        <div class="input-group" style="flex: 2; margin: 0;">
+                            <label>Cost Description</label>
+                            <input type="text" placeholder="e.g., Import Tax, Shipping" class="cost-description">
+                        </div>
+                        <div class="input-group" style="flex: 1; margin: 0;">
+                            <label>Amount (<span class="cost-currency">EUR</span>)</label>
+                            <input type="number" step="0.01" placeholder="0.00" class="cost-amount">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="addCostRow()" style="margin-top: 15px; width: 100%;">
+                    + Add Another Cost
+                </button>
+                <div class="summary-card" style="margin-top: 20px;">
+                    <div class="summary-label">Total Additional Costs</div>
+                    <div class="summary-value"><span id="totalCosts">0.00</span> <span id="totalCostsCurrency">EUR</span></div>
+                </div>
+            </div>
+
+            <!-- Step 3: Configure -->
+            <div class="card">
+                <h2><span class="step-number">3</span> Configuration</h2>
+                <div class="input-group">
+                    <label>Invoice Currency</label>
+                    <select id="baseCurrency" onchange="updateCurrencyDisplay()">
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="TRY">TRY - Turkish Lira</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="CNY">CNY - Chinese Yuan</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="CHF">CHF - Swiss Franc</option>
+                        <option value="INR">INR - Indian Rupee</option>
+                        <option value="AED">AED - UAE Dirham</option>
+                        <option value="SAR">SAR - Saudi Riyal</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Target Currency (for selling prices)</label>
+                    <select id="targetCurrency" onchange="updateCurrencyDisplay()">
+                        <option value="TRY">TRY - Turkish Lira</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="GBP">GBP - British Pound</option>
+                        <option value="JPY">JPY - Japanese Yen</option>
+                        <option value="CNY">CNY - Chinese Yuan</option>
+                        <option value="AUD">AUD - Australian Dollar</option>
+                        <option value="CAD">CAD - Canadian Dollar</option>
+                        <option value="CHF">CHF - Swiss Franc</option>
+                        <option value="INR">INR - Indian Rupee</option>
+                        <option value="AED">AED - UAE Dirham</option>
+                        <option value="SAR">SAR - Saudi Riyal</option>
+                    </select>
+                </div>
+                <div class="input-group" id="exchangeRateGroup">
+                    <label id="exchangeRateLabel">Exchange Rate (1 EUR = ? TRY)</label>
+                    <input type="number" id="exchangeRate" value="53" step="0.01" min="0">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                        Enter the conversion rate from your invoice currency to target currency
+                    </p>
+                </div>
+                <div class="input-group">
+                    <label>Profit Margins (%)</label>
+                    <div class="profit-margin-inputs">
+                        <input type="number" class="profit-margin" value="100" placeholder="100%">
+                        <input type="number" class="profit-margin" value="90" placeholder="90%">
+                        <input type="number" class="profit-margin" value="80" placeholder="80%">
+                        <input type="number" class="profit-margin" value="50" placeholder="50%">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Calculate -->
+            <div class="card">
+                <h2><span class="step-number">4</span> Calculate & Export</h2>
+                <button class="btn" onclick="calculate()" style="width: 100%; font-size: 1.1rem; padding: 18px;">
+                    🧮 Calculate Costs
+                </button>
+                <div id="exportButtons" class="export-buttons hidden">
+                    <button class="btn btn-secondary" onclick="exportToExcel()">
+                        📊 Export to Excel
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportToCSV()">
+                        📋 Export to CSV
+                    </button>
+                    <button class="btn btn-secondary" onclick="printResults()">
+                        🖨️ Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="card full-width hidden" id="resultsCard">
+                <h2>📈 Results</h2>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Invoice Total</div>
+                        <div class="summary-value"><span id="invoiceTotal">0.00</span> <span id="invoiceCurrency">EUR</span></div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Additional Costs</div>
+                        <div class="summary-value"><span id="additionalCosts">0.00</span> <span id="additionalCurrency">EUR</span></div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Grand Total</div>
+                        <div class="summary-value"><span id="grandTotal">0.00</span> <span id="grandTotalCurrency">EUR</span></div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Cost Multiplier</div>
+                        <div class="summary-value"><span id="multiplier">1.0000</span>x</div>
+                    </div>
+                </div>
+                <div style="overflow-x: auto; margin-top: 30px;">
+                    <table class="results-table" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Product/Service</th>
+                                <th>Qty</th>
+                                <th id="unitPriceHeader">Cost Per Item (EUR)</th>
+                                <th id="totalCostHeader">Total Item Cost (EUR)</th>
+                                <th id="costTargetHeader">Cost Per Item (TRY)</th>
+                                <th id="profitHeader1">+100% (TRY)</th>
+                                <th id="profitHeader2">+90% (TRY)</th>
+                                <th id="profitHeader3">+80% (TRY)</th>
+                                <th id="profitHeader4">+50% (TRY)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Invoice Cost Calculator © 2026 | Built for smart pricing decisions</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        let invoiceData = [];
+        let uploadedFile = null;
+
+        // Set up PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Update currency display when currencies change
+        function updateCurrencyDisplay() {
+            const baseCurrency = document.getElementById('baseCurrency').value;
+            const targetCurrency = document.getElementById('targetCurrency').value;
+            const exchangeRateGroup = document.getElementById('exchangeRateGroup');
+            const exchangeRateLabel = document.getElementById('exchangeRateLabel');
+            const exchangeRateInput = document.getElementById('exchangeRate');
+
+            // Update all currency labels throughout the page
+            document.getElementById('totalCostsCurrency').textContent = baseCurrency;
+            document.querySelectorAll('.cost-currency').forEach(el => {
+                el.textContent = baseCurrency;
+            });
+            
+            // Check if currencies are the same
+            if (baseCurrency === targetCurrency) {
+                // Hide exchange rate input
+                exchangeRateGroup.style.display = 'none';
+                exchangeRateInput.value = '1';
+            } else {
+                // Show exchange rate input with updated label
+                exchangeRateGroup.style.display = 'block';
+                exchangeRateLabel.textContent = `Exchange Rate (1 ${baseCurrency} = ? ${targetCurrency})`;
+                
+                // Set default rates based on common conversions (user can override)
+                const defaultRates = {
+                    'EUR-TRY': 53, 'USD-TRY': 48, 'GBP-TRY': 60,
+                    'EUR-USD': 1.10, 'GBP-USD': 1.27, 'USD-EUR': 0.91,
+                    'EUR-GBP': 0.86, 'USD-GBP': 0.79, 'GBP-EUR': 1.16,
+                    'TRY-USD': 0.021, 'TRY-EUR': 0.019, 'TRY-GBP': 0.017,
+                    'EUR-JPY': 160, 'USD-JPY': 145, 'GBP-JPY': 183,
+                    'EUR-CNY': 7.8, 'USD-CNY': 7.2, 'GBP-CNY': 9.1,
+                    'EUR-AUD': 1.65, 'USD-AUD': 1.50, 'GBP-AUD': 1.90,
+                    'EUR-CAD': 1.48, 'USD-CAD': 1.35, 'GBP-CAD': 1.70,
+                    'EUR-CHF': 0.95, 'USD-CHF': 0.87, 'GBP-CHF': 1.10,
+                    'EUR-INR': 90, 'USD-INR': 83, 'GBP-INR': 105,
+                    'EUR-AED': 4.0, 'USD-AED': 3.67, 'GBP-AED': 4.65,
+                    'EUR-SAR': 4.1, 'USD-SAR': 3.75, 'GBP-SAR': 4.75,
+                };
+                
+                const rateKey = `${baseCurrency}-${targetCurrency}`;
+                if (defaultRates[rateKey]) {
+                    exchangeRateInput.value = defaultRates[rateKey];
+                } else {
+                    // Try reverse rate
+                    const reverseKey = `${targetCurrency}-${baseCurrency}`;
+                    if (defaultRates[reverseKey]) {
+                        exchangeRateInput.value = (1 / defaultRates[reverseKey]).toFixed(4);
+                    } else {
+                        exchangeRateInput.value = '1';
+                    }
+                }
+            }
+        }
+
+        // Initialize currency display on page load
+        window.addEventListener('DOMContentLoaded', updateCurrencyDisplay);
+
+        // File upload handling
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        async function handleFile(file) {
+            uploadedFile = file;
+            const fileInfo = document.getElementById('fileInfo');
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            // Show file info
+            fileInfo.innerHTML = `
+                <div class="file-info">
+                    <div class="file-icon">${getFileIcon(ext)}</div>
+                    <div class="file-details">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="btn btn-danger" onclick="removeFile()">Remove</button>
+                </div>
+            `;
+            fileInfo.classList.remove('hidden');
+
+            // Parse file
+            try {
+                if (ext === 'pdf') {
+                    await parsePDF(file);
+                } else if (['xlsx', 'xls'].includes(ext)) {
+                    await parseExcel(file);
+                } else if (ext === 'csv') {
+                    await parseCSV(file);
+                } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+                    showAlert('Image uploaded. Please manually enter invoice data.', 'info');
+                }
+            } catch (error) {
+                showAlert('Error parsing file. Please check the format.', 'error');
+                console.error(error);
+            }
+        }
+
+        async function parsePDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let text = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(item => item.str).join(' ') + '\n';
+            }
+
+            // Try to extract invoice total
+            const totalMatch = text.match(/total.*?(\d+[.,]\d+)/i);
+            if (totalMatch) {
+                const total = parseFloat(totalMatch[1].replace(',', '.'));
+                invoiceData = [{ name: 'Invoice Total', qty: 1, unitPrice: total, total: total }];
+                showAlert('PDF parsed! Found invoice total. You can add line items manually if needed.', 'success');
+            } else {
+                showAlert('PDF uploaded but could not extract data. Please enter invoice details manually.', 'info');
+            }
+        }
+
+        async function parseExcel(file) {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            // Try to parse invoice data
+            invoiceData = [];
+            let foundData = false;
+
+            for (let row of jsonData) {
+                if (row.length >= 4 && typeof row[2] === 'number') {
+                    invoiceData.push({
+                        name: row[1] || row[0] || 'Item',
+                        qty: row[2] || 1,
+                        unitPrice: row[3] || 0,
+                        total: row[4] || (row[2] * row[3])
+                    });
+                    foundData = true;
+                }
+            }
+
+            if (foundData) {
+                showAlert(`Excel parsed! Found ${invoiceData.length} items.`, 'success');
+            } else {
+                showAlert('Excel uploaded but could not extract structured data. Please verify the format.', 'info');
+            }
+        }
+
+        async function parseCSV(file) {
+            const text = await file.text();
+            const rows = text.split('\n').map(row => row.split(','));
+
+            invoiceData = [];
+            for (let row of rows.slice(1)) { // Skip header
+                if (row.length >= 4) {
+                    invoiceData.push({
+                        name: row[1] || row[0] || 'Item',
+                        qty: parseFloat(row[2]) || 1,
+                        unitPrice: parseFloat(row[3]) || 0,
+                        total: parseFloat(row[4]) || 0
+                    });
+                }
+            }
+
+            showAlert(`CSV parsed! Found ${invoiceData.length} items.`, 'success');
+        }
+
+        function removeFile() {
+            uploadedFile = null;
+            invoiceData = [];
+            document.getElementById('fileInfo').classList.add('hidden');
+            fileInput.value = '';
+        }
+
+        function getFileIcon(ext) {
+            const icons = {
+                pdf: '📕',
+                xlsx: '📊',
+                xls: '📊',
+                csv: '📋',
+                png: '🖼️',
+                jpg: '🖼️',
+                jpeg: '🖼️'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function addCostRow() {
+            const baseCurrency = document.getElementById('baseCurrency').value;
+            const container = document.getElementById('costsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'cost-item';
+            newRow.innerHTML = `
+                <div class="input-group" style="flex: 2; margin: 0;">
+                    <label>Cost Description</label>
+                    <input type="text" placeholder="e.g., Import Tax, Shipping" class="cost-description">
+                </div>
+                <div class="input-group" style="flex: 1; margin: 0;">
+                    <label>Amount (<span class="cost-currency">${baseCurrency}</span>)</label>
+                    <input type="number" step="0.01" placeholder="0.00" class="cost-amount">
+                </div>
+                <button class="btn btn-danger" onclick="removeCostRow(this)">×</button>
+            `;
+            container.appendChild(newRow);
+            updateTotalCosts();
+        }
+
+        function removeCostRow(btn) {
+            btn.parentElement.remove();
+            updateTotalCosts();
+        }
+
+        function updateTotalCosts() {
+            const amounts = document.querySelectorAll('.cost-amount');
+            let total = 0;
+            amounts.forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                total += value;
+            });
+            document.getElementById('totalCosts').textContent = total.toFixed(2);
+        }
+
+        // Update total costs on input
+        document.addEventListener('input', (e) => {
+            if (e.target.classList.contains('cost-amount')) {
+                updateTotalCosts();
+            }
+        });
+
+        function calculate() {
+            // Get currencies
+            const baseCurrency = document.getElementById('baseCurrency').value;
+            const targetCurrency = document.getElementById('targetCurrency').value;
+            const exchangeRate = parseFloat(document.getElementById('exchangeRate').value) || 1;
+            
+            // Get additional costs
+            const costAmounts = document.querySelectorAll('.cost-amount');
+            let additionalCosts = 0;
+            costAmounts.forEach(input => {
+                additionalCosts += parseFloat(input.value) || 0;
+            });
+
+            if (invoiceData.length === 0) {
+                // If no file uploaded, create sample data based on your original invoice
+                invoiceData = [
+                    { name: "Gun Cleaner 500 ml", qty: 60, unitPrice: 6.22, total: 373.20 },
+                    { name: "Gun Cleaner 5000 ml", qty: 10, unitPrice: 39.66, total: 396.60 },
+                    { name: "Care Spray 500 ml", qty: 24, unitPrice: 7.01, total: 168.24 },
+                    { name: "CLP Oil 20ml", qty: 20, unitPrice: 3.82, total: 76.40 },
+                    { name: "Compressed Air 500 ml", qty: 24, unitPrice: 5.03, total: 120.72 },
+                    { name: "Bore Foam 500 ml", qty: 24, unitPrice: 13.09, total: 314.16 },
+                    { name: "Graphite Spray", qty: 10, unitPrice: 4.24, total: 42.40 },
+                    { name: "Military Soap 50ml", qty: 20, unitPrice: 1.32, total: 26.40 },
+                    { name: "Ceramic Grease 100g", qty: 15, unitPrice: 5.16, total: 77.40 },
+                    { name: "Silencer Cleaner 600ml", qty: 12, unitPrice: 7.94, total: 95.28 },
+                ];
+            }
+
+            // Calculate totals
+            const invoiceTotal = invoiceData.reduce((sum, item) => sum + item.total, 0);
+            const grandTotal = invoiceTotal + additionalCosts;
+            const multiplier = grandTotal / invoiceTotal;
+
+            // Get profit margins
+            const profitMargins = Array.from(document.querySelectorAll('.profit-margin'))
+                .map(input => parseFloat(input.value) || 0);
+
+            // Update summary with correct currencies
+            document.getElementById('invoiceTotal').textContent = invoiceTotal.toFixed(2);
+            document.getElementById('invoiceCurrency').textContent = baseCurrency;
+            document.getElementById('additionalCosts').textContent = additionalCosts.toFixed(2);
+            document.getElementById('additionalCurrency').textContent = baseCurrency;
+            document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+            document.getElementById('grandTotalCurrency').textContent = baseCurrency;
+            document.getElementById('multiplier').textContent = multiplier.toFixed(4);
+
+            // Update table headers with correct currencies
+            document.getElementById('unitPriceHeader').textContent = `Cost Per Item (${baseCurrency})`;
+            document.getElementById('totalCostHeader').textContent = `Total Item Cost (${baseCurrency})`;
+            document.getElementById('costTargetHeader').textContent = `Cost Per Item (${targetCurrency})`;
+            
+            // Update profit headers
+            profitMargins.forEach((margin, index) => {
+                document.getElementById(`profitHeader${index + 1}`).textContent = `+${margin}% (${targetCurrency})`;
+            });
+
+            // Generate results table
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+
+            invoiceData.forEach(item => {
+                const finalUnitPrice = item.unitPrice * multiplier;
+                const finalTotalPrice = item.total * multiplier;
+                const costInTargetCurrency = finalUnitPrice * exchangeRate;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.qty}</td>
+                    <td class="currency">${finalUnitPrice.toFixed(2)}</td>
+                    <td class="currency">${finalTotalPrice.toFixed(2)}</td>
+                    <td class="currency">${costInTargetCurrency.toFixed(2)}</td>
+                    ${profitMargins.map(margin => 
+                        `<td class="currency">${(costInTargetCurrency * (1 + margin / 100)).toFixed(2)}</td>`
+                    ).join('')}
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Show results
+            document.getElementById('resultsCard').classList.remove('hidden');
+            document.getElementById('exportButtons').classList.remove('hidden');
+
+            // Scroll to results
+            document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function exportToExcel() {
+            const baseCurrency = document.getElementById('baseCurrency').value;
+            const targetCurrency = document.getElementById('targetCurrency').value;
+            const exchangeRate = parseFloat(document.getElementById('exchangeRate').value) || 1;
+            const profitMargins = Array.from(document.querySelectorAll('.profit-margin'))
+                .map(input => parseFloat(input.value) || 0);
+            
+            const additionalCosts = parseFloat(document.getElementById('additionalCosts').textContent);
+            const invoiceTotal = parseFloat(document.getElementById('invoiceTotal').textContent);
+            const multiplier = parseFloat(document.getElementById('multiplier').textContent);
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+
+            // Prepare data
+            const data = [
+                ['Product/Service', 'Qty', `Original Unit Price (${baseCurrency})`, `Final Cost Per Unit (${baseCurrency})`, `Final Cost (${targetCurrency})`, 
+                 ...profitMargins.map(m => `Sell Price +${m}% (${targetCurrency})`)]
+            ];
+
+            invoiceData.forEach(item => {
+                const finalUnitPrice = item.unitPrice * multiplier;
+                const costInTargetCurrency = finalUnitPrice * exchangeRate;
+                
+                data.push([
+                    item.name,
+                    item.qty,
+                    item.unitPrice.toFixed(2),
+                    finalUnitPrice.toFixed(2),
+                    costInTargetCurrency.toFixed(2),
+                    ...profitMargins.map(margin => (costInTargetCurrency * (1 + margin / 100)).toFixed(2))
+                ]);
+            });
+
+            // Add summary
+            data.push([]);
+            data.push(['Summary']);
+            data.push(['Invoice Total:', invoiceTotal.toFixed(2) + ' ' + baseCurrency]);
+            data.push(['Additional Costs:', additionalCosts.toFixed(2) + ' ' + baseCurrency]);
+            data.push(['Grand Total:', (invoiceTotal + additionalCosts).toFixed(2) + ' ' + baseCurrency]);
+            data.push(['Cost Multiplier:', multiplier.toFixed(4)]);
+            if (baseCurrency !== targetCurrency) {
+                data.push(['Exchange Rate:', `1 ${baseCurrency} = ${exchangeRate} ${targetCurrency}`]);
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Invoice Costs');
+
+            // Download
+            XLSX.writeFile(wb, `invoice_costs_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function exportToCSV() {
+            const baseCurrency = document.getElementById('baseCurrency').value;
+            const targetCurrency = document.getElementById('targetCurrency').value;
+            const exchangeRate = parseFloat(document.getElementById('exchangeRate').value) || 1;
+            const profitMargins = Array.from(document.querySelectorAll('.profit-margin'))
+                .map(input => parseFloat(input.value) || 0);
+            
+            const additionalCosts = parseFloat(document.getElementById('additionalCosts').textContent);
+            const invoiceTotal = parseFloat(document.getElementById('invoiceTotal').textContent);
+            const multiplier = parseFloat(document.getElementById('multiplier').textContent);
+
+            let csv = `Product/Service,Qty,Original Unit Price (${baseCurrency}),Final Cost Per Unit (${baseCurrency}),Final Cost (${targetCurrency}),` + 
+                      profitMargins.map(m => `Sell Price +${m}% (${targetCurrency})`).join(',') + '\n';
+
+            invoiceData.forEach(item => {
+                const finalUnitPrice = item.unitPrice * multiplier;
+                const costInTargetCurrency = finalUnitPrice * exchangeRate;
+                
+                csv += `"${item.name}",${item.qty},${item.unitPrice.toFixed(2)},${finalUnitPrice.toFixed(2)},${costInTargetCurrency.toFixed(2)},` +
+                       profitMargins.map(margin => (costInTargetCurrency * (1 + margin / 100)).toFixed(2)).join(',') + '\n';
+            });
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `invoice_costs_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function printResults() {
+            window.print();
+        }
+
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                <span>${type === 'success' ? '✓' : 'ℹ'}</span>
+                <span>${message}</span>
+            `;
+            
+            const firstCard = document.querySelector('.card');
+            firstCard.parentElement.insertBefore(alert, firstCard);
+
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // Print styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @media print {
+                body { background: white; color: black; }
+                .card { box-shadow: none; border: 1px solid #ddd; }
+                .btn, .upload-zone, .export-buttons, footer { display: none; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
